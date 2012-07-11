@@ -53,6 +53,18 @@ usb_device () {
 	cat /sys/devices/platform/musb_hdrc/hostdevice
 }
 
+usb_attached () {
+#	test ! -z "$(lsusb | grep -v '1d6b:0002')"
+	lsusb | grep -v '1d6b:0002' > /var/tmp/lsusb &
+#	pid=$!
+	sleep 3
+	test -s /var/tmp/lsusb
+	ret=$?
+	kill -9 %1 1>/dev/null 2>&1
+#	kill -9 $pid 1>/dev/null 2>&1
+	return $ret
+}
+
 msg () {
 	echo "$1"
 	dbus-send --system --type=method_call --dest=org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications.SystemNoteInfoprint string:"$1"
@@ -66,10 +78,17 @@ host_mode_with_boost () {
 		return 1
 	fi
 
+	if usb_attached; then
+		msg "Device already attached"
+		return 0
+	fi
+
 	if test -z "$1"; then
 		try=low
+		iter="1 2 3 4 5"
 	else
 		try="$1"
+		iter="1"
 	fi
 
 	if ! lsmod | grep -q g_file_storage; then
@@ -77,9 +96,8 @@ host_mode_with_boost () {
 	fi
 
 	good=
-#	quit=0
 
-	for i in 1 2 3 4 5; do
+	for i in $iter; do
 
 		msg "Setting usb speed: $try"
 
@@ -96,7 +114,12 @@ host_mode_with_boost () {
 		sleep 1
 
 		usb_enum
-		sleep 1
+		sleep 2
+
+		if usb_attached; then
+			msg "Done. Device visible in system"
+			return 0
+		fi
 
 		speed="$(usb_device)"
 		msg "Attached device speed: $speed"
@@ -141,40 +164,20 @@ host_mode_with_boost () {
 			good="$try"
 		fi
 
+		if test "$try" = "$next"; then
+			msg "Error: Correct speed but device not visible in system"
+		fi
+
 		if test -z "$next"; then
 			msg "Error: No device attached"
 			return 1
 		fi
 
-		if test "$try" = "$next"; then
-			msg "Done. Correct usb speed: $try"
-			return 0
-		fi
-
-		if ! test -z "$1"; then
-			if test -z "$good"; then
-				msg "Error: Bad speed"
-				return 1
-			else
-				msg "Done"
-				return 0
-			fi
-		fi
-
-#		if test "$quit" = "1"; then
-#			msg "Error: Cannot detect speed"
-#			return 1
-#		fi
-
-#		if ! test -z "$good"; then
-#			quit=1
-#		fi
-
 		try="$next"
 
 	done
 
-	msg "Error: Timeout"
+	msg "Error: Timeout, configuration failed"
 	return 1
 
 }
@@ -199,6 +202,9 @@ peripheral_mode () {
 		charger_mode none
 		sleep 4
 	fi
+
+	usb_enum
+	sleep 1
 
 	usb_mode peripheral
 	charger_mode auto 2>/dev/null
