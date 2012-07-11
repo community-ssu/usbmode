@@ -11,16 +11,18 @@ bme () {
 		rmmod bq27x00_battery || return 1
 	fi
 	if ! pidof bme_RX-51 1>/dev/null 2>&1; then
-		B=$(cat /sys/class/backlight/acx565akm/brightness)
-		start bme || return 1
-		echo $B > /sys/class/backlight/acx565akm/brightness
+		msg "Starting bme"
+		B="$(cat /sys/class/backlight/acx565akm/brightness)"
+		start -q bme || return 1
+		echo "$B" > /sys/class/backlight/acx565akm/brightness
 	fi
 	return 0
 }
 
 kernel () {
 	if pidof bme_RX-51 1>/dev/null 2>&1; then
-		stop bme || return 1
+		msg "Stopping bme"
+		stop -q bme || return 1
 	fi
 	if ! lsmod | grep -q bq2415x_charger; then
 		modprobe bq2415x_charger || return 1
@@ -65,99 +67,108 @@ host_mode_with_boost () {
 	fi
 
 	if test -z "$1"; then
-		try=hostl
-		good=
+		try=low
 	else
 		try="$1"
-		good="$1"
 	fi
 
-	for i in 1 2 3 4; do
+	if ! lsmod | grep -q g_file_storage; then
+		modprobe g_file_storage stall=0 luns=2 removable
+	fi
 
-		msg "Trying usb mode $try"
+	good=
+#	quit=0
 
-#		rmmod g_file_storage
-#		sleep 2
-		peripheral_mode
-		sleep 2
+	for i in 1 2 3 4 5; do
+
+		msg "Setting usb speed: $try"
 
 		charger_mode none
-		usb_mode "$try"
+		sleep 4
+
+		case "$try" in
+			low) usb_mode hostl;;
+			full) usb_mode hostf;;
+			high) usb_mode hosth;;
+		esac
+
 		charger_mode boost
 		sleep 1
 
 		usb_enum
-		usb_enum
 		sleep 1
 
 		speed="$(usb_device)"
-		echo "speed: $speed"
+		msg "Attached device speed: $speed"
 
-		if echo "$speed" | grep -q low; then
-			next=hostl
-		elif echo "$speed" | grep -q full; then
-			next=hostf
-		elif echo "$speed" | grep -q high; then
-			next=hosth
-		else
-			next=
-		fi
+		case "$speed" in
 
-		echo "next=$next"
+			none)
+				next="$good"
+			;;
 
-		if test "$try" = "$good" && test "$try" = "$next"; then
-			msg "Done. Correct mode is $try"
-			return 0
-		fi
+			low)
+				next=low
+			;;
 
-		if test -z "$good"; then
-			quit=0
-		else
-			quit=1
-		fi
+			full/low)
+				if test "$try" = "low"; then
+					next=full
+				else
+					next=low
+				fi
+			;;
 
-		if test "$try" = "$next"; then
+			full)
+				next=full
+			;;
+
+			full/high)
+				if test "$try" = "full"; then
+					next=high
+				else
+					next=full
+				fi
+			;;
+
+			high)
+				next=high
+			;;
+
+		esac
+
+		if echo "$speed" | grep "$try"; then
 			good="$try"
-			echo "good=$good"
 		fi
-
-		if test "$try" = "hostl" && echo "$speed" | grep -q full; then
-			next=hostf
-		fi
-
-		if test "$try" = "hostf" && echo "$speed" | grep -q full; then
-			next=hostf
-		fi
-
-		if test "$try" = "hostf" && echo "$speed" | grep -q high; then
-			next=hosth
-		fi
-
-		if test "$try" = "hosth" && echo "$speed" | grep -q high; then
-			next=hosth
-		fi
-
-		echo "next=$next"
-
-		if test "$try" = "$next"; then
-			msg "Done. Correct mode is $try"
-			return 0
-		fi
-
-		if test "$quit" = "1"; then
-			break
-		fi
-
-		if ! test -z "$good" && test -z "$next"; then
-			next="$good"
-		fi
-
-		echo "next=$next"
 
 		if test -z "$next"; then
-			msg "Error: No usb device attached"
+			msg "Error: No device attached"
 			return 1
 		fi
+
+		if test "$try" = "$next"; then
+			msg "Done. Correct usb speed: $try"
+			return 0
+		fi
+
+		if ! test -z "$1"; then
+			if test -z "$good"; then
+				msg "Error: Bad speed"
+				return 1
+			else
+				msg "Done"
+				return 0
+			fi
+		fi
+
+#		if test "$quit" = "1"; then
+#			msg "Error: Cannot detect speed"
+#			return 1
+#		fi
+
+#		if ! test -z "$good"; then
+#			quit=1
+#		fi
 
 		try="$next"
 
@@ -168,66 +179,33 @@ host_mode_with_boost () {
 
 }
 
-#host_mode () {
-#
-#	charger_mode auto
-#
-#	try=hostl
-#
-#	for i in 1 2 3 4; do
-#
-#		msg "Trying usb mode $try"
-#
-#		peripheral_mode
-#		sleep 1
-#
-#		rmmod g_file_storage
-#		sleep 1
-#
-#		usb_mode "$try"
-#		sleep 1
-#
-#		usb_enum
-#		sleep 1
-#
-#		speed="$(usb_device)"
-#
-#		if echo "$speed" | grep -q low; then
-#			next=hostl
-#		elif echo "$speed" | grep -q full; then
-#			next=hostf
-#		elif echo "$speed" | grep -q high; then
-#			next=hosth
-#		else
-#			next=
-#		fi
-#
-#		if test "$next" = "$try"; then
-#			return 0
-#		elif test -z "$next"; then
-#			msg "Error: No usb device attached"
-#			next=hostf
-##			return 1
-#		fi
-#
-#		try="$next"
-#
-#	done
-#
-#	return 1
-#
-#}
+host_mode_with_charging () {
+
+	if usb_device | grep -q none; then
+		host_mode_with_boost || return 1
+	else
+		msg "USB host mode already active, enabling charging"
+	fi
+
+	charger_mode auto
+
+	return 0
+
+}
 
 peripheral_mode () {
 
 	if charger_mode 2>/dev/null | grep -q boost; then
 		charger_mode none
-		sleep 1
+		sleep 4
 	fi
 
 	usb_mode peripheral
 	charger_mode auto 2>/dev/null
-	modprobe g_file_storage stall=0 luns=2 removable
+
+	if ! lsmod | grep -q g_file_storage; then
+		modprobe g_file_storage stall=0 luns=2 removable
+	fi
 
 }
 
@@ -240,10 +218,10 @@ if test "$1" = "peripheral"; then
 	msg "Setting usb mode to peripheral"
 	peripheral_mode
 	bme
-#elif test "$1" = "host"; then
-#	msg "Setting usb mode to host without boost"
-#	kernel || exit 1
-#	host_mode "$2" || exit 1
+elif test "$1" = "host"; then
+	msg "Setting usb mode to host with charging"
+	kernel || exit 1
+	host_mode_with_charging "$2" || exit 1
 elif test "$1" = "boost"; then
 	msg "Setting usb mode to host with boost"
 	kernel || exit 1
