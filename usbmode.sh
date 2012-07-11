@@ -82,8 +82,10 @@ host_mode () {
 
 	if lsmod | grep -q g_file_storage; then
 		rmmod g_file_storage
+		sleep 1
 	fi
 
+	charger_mode none
 	modprobe g_file_storage stall=0 luns=2 removable
 
 	if test -z "$1"; then
@@ -185,6 +187,7 @@ peripheral_mode () {
 
 	if lsmod | grep -q g_file_storage; then
 		rmmod g_file_storage
+		sleep 1
 	fi
 
 	if charger_mode 2>/dev/null | grep -q boost; then
