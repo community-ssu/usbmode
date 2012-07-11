@@ -54,14 +54,11 @@ usb_device () {
 }
 
 usb_attached () {
-#	test ! -z "$(lsusb | grep -v '1d6b:0002')"
 	lsusb | grep -v '1d6b:0002' > /var/tmp/lsusb &
-#	pid=$!
 	sleep 3
 	test -s /var/tmp/lsusb
 	ret=$?
 	kill -9 %1 1>/dev/null 2>&1
-#	kill -9 $pid 1>/dev/null 2>&1
 	return $ret
 }
 
@@ -70,7 +67,12 @@ msg () {
 	dbus-send --system --type=method_call --dest=org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications.SystemNoteInfoprint string:"$1"
 }
 
-host_mode_with_boost () {
+host_mode () {
+
+	if usb_attached; then
+		msg "Device already visible in system"
+		return 0
+	fi
 
 	mode=$(charger_mode)
 	if ! echo "$mode" | grep -q none && ! echo "$mode" | grep -q boost; then
@@ -78,10 +80,11 @@ host_mode_with_boost () {
 		return 1
 	fi
 
-	if usb_attached; then
-		msg "Device already attached"
-		return 0
+	if lsmod | grep -q g_file_storage; then
+		rmmod g_file_storage
 	fi
+
+	modprobe g_file_storage stall=0 luns=2 removable
 
 	if test -z "$1"; then
 		try=low
@@ -89,10 +92,6 @@ host_mode_with_boost () {
 	else
 		try="$1"
 		iter="1"
-	fi
-
-	if ! lsmod | grep -q g_file_storage; then
-		modprobe g_file_storage stall=0 luns=2 removable
 	fi
 
 	good=
@@ -182,36 +181,19 @@ host_mode_with_boost () {
 
 }
 
-host_mode_with_charging () {
-
-	if usb_device | grep -q none; then
-		host_mode_with_boost || return 1
-	else
-		msg "USB host mode already active, enabling charging"
-	fi
-
-	charger_mode auto
-
-	return 0
-
-}
-
 peripheral_mode () {
+
+	if lsmod | grep -q g_file_storage; then
+		rmmod g_file_storage
+	fi
 
 	if charger_mode 2>/dev/null | grep -q boost; then
 		charger_mode none
-		sleep 4
 	fi
-
-	usb_enum
-	sleep 1
 
 	usb_mode peripheral
 	charger_mode auto 2>/dev/null
-
-	if ! lsmod | grep -q g_file_storage; then
-		modprobe g_file_storage stall=0 luns=2 removable
-	fi
+	modprobe g_file_storage stall=0 luns=2 removable
 
 }
 
@@ -225,15 +207,16 @@ if test "$1" = "peripheral"; then
 	peripheral_mode
 	bme
 elif test "$1" = "host"; then
-	msg "Setting usb mode to host with charging"
-	kernel || exit 1
-	host_mode_with_charging "$2" || exit 1
-elif test "$1" = "boost"; then
 	msg "Setting usb mode to host with boost"
 	kernel || exit 1
-	host_mode_with_boost "$2" || exit 1
+	host_mode "$2" || exit 1
+elif test "$1" = "hostc"; then
+	msg "Setting usb mode to host with charging"
+	kernel || exit 1
+	host_mode "$2" || exit 1
+	charger_mode auto
 else
-	msg "Script '$0' called without valid option. Valid are: peripheral host boost"
+	msg "Script '$0' called without valid option. Valid are: peripheral host hostc"
 	exit 1
 fi
 
