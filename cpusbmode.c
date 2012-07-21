@@ -157,15 +157,30 @@ static void callback(GObject * object, gpointer user_data) {
 
 	dialog = gtk_dialog_new();
 
+	if ( ! dialog )
+		return;
+
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
 	gtk_dialog_set_has_separator(GTK_DIALOG(dialog), FALSE);
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
 
 	box = gtk_vbox_new(FALSE, HILDON_MARGIN_DOUBLE);
+
+	if ( ! box ) {
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
 	gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), box);
 
 	bar = gtk_progress_bar_new();
+
+	if ( ! bar ) {
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(bar), "Setting USB mode");
 	gtk_progress_bar_set_ellipsize(GTK_PROGRESS_BAR(bar), PANGO_ELLIPSIZE_END);
 	g_object_set(G_OBJECT(bar), "text-xalign", 0.5, NULL);
@@ -215,10 +230,16 @@ osso_return_t execute(osso_context_t * osso G_GNUC_UNUSED, gpointer user_data, g
 	}
 
 	dialog = gtk_dialog_new_with_buttons("USB mode", window, GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR, "Done", GTK_RESPONSE_OK, NULL);
+
+	if ( ! dialog )
+		return OSSO_ERROR;
+
 	box = gtk_vbox_new(TRUE, 0);
 
-	if ( ! dialog || ! box )
+	if ( ! box ) {
+		gtk_widget_destroy(dialog);
 		return OSSO_ERROR;
+	}
 
 	peripheral = hildon_gtk_toggle_button_new(HILDON_SIZE_FINGER_HEIGHT);
 	host = hildon_gtk_toggle_button_new(HILDON_SIZE_FINGER_HEIGHT);

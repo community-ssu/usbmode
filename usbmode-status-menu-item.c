@@ -56,8 +56,10 @@ static void usbmode_status_menu_item_clicked(GObject * button G_GNUC_UNUSED, gpo
 
 	execute = dlsym(handle, "execute");
 
-	if ( ! execute )
+	if ( ! execute ) {
+		dlclose(handle);
 		return;
+	}
 
 	execute(NULL, NULL, TRUE);
 	dlclose(handle);
