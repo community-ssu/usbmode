@@ -1,4 +1,4 @@
-all: libcpusbmode.so
+all: libcpusbmode.so libusbmode-status-menu-item.so
 
 install: all
 	install -d "$(DESTDIR)/usr/sbin/"
@@ -18,8 +18,12 @@ uninstall:
 
 clean:
 	$(RM) libcpusbmode.so
+	$(RM) libusbmode-status-menu-item.so
 
 libcpusbmode.so: cpusbmode.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(shell pkg-config --cflags --libs hildon-control-panel hildon-1 libosso) -W -Wall -O2 -shared $^ -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(shell pkg-config --cflags --libs hildon-control-panel hildon-1 libosso) -W -Wall -O2 -shared $< -o $@
+
+libusbmode-status-menu-item.so: usbmode-status-menu-item.c usbmode-status-menu-item.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(shell pkg-config --cflags --libs libhildondesktop-1 hildon-1) -W -Wall -O2 -shared $< -o $@
 
 .PHONY: all install uninstall clean
