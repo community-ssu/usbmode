@@ -235,7 +235,7 @@ host_mode () {
 			good="$try"
 		fi
 
-		if test "$try" = "$next"; then
+		if test "$try" = "$next" && test "$speed" != "none"; then
 			msg "Error: Correct speed but device not visible in system"
 		fi
 
