@@ -47,6 +47,14 @@ kernel () {
 	return 0
 }
 
+gadget_unload () {
+	modules="$(lsmod | grep '^g_' | sed 's/ .*//')"
+	for module in $modules; do
+		rmmod $module
+		sleep 1
+	done
+}
+
 mce () {
 	if ! grep -q '^PatternBoost=' /etc/mce/mce.ini || ! grep '^LEDPatterns=' /etc/mce/mce.ini | grep -q PatternBoost; then
 		if ! dpkg -l mceledpattern | grep -q '^ii'; then
@@ -150,11 +158,7 @@ host_mode () {
 		return 1
 	fi
 
-	if lsmod | grep -q g_file_storage; then
-		rmmod g_file_storage
-		sleep 1
-	fi
-
+	gadget_unload
 	charger_mode none
 	modprobe g_file_storage stall=0 luns=2 removable
 
@@ -255,10 +259,7 @@ host_mode () {
 
 peripheral_mode () {
 
-	if lsmod | grep -q g_file_storage; then
-		rmmod g_file_storage 2>/dev/null
-		sleep 1
-	fi
+	gadget_unload 2>/dev/null
 
 	if charger_mode 2>/dev/null | grep -q boost; then
 		charger_mode none 2>/dev/null
