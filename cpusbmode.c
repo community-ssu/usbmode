@@ -18,74 +18,23 @@
 
 */
 
+#include <string.h>
+
 #include <gtk/gtk.h>
 #include <hildon/hildon.h>
 #include <hildon-cp-plugin/hildon-cp-plugin-interface.h>
 
 enum usbmode {
-	MODE_PERIPHERAL;
-	MODE_HOST;
-	MODE_HOSTC;
-}
+	MODE_PERIPHERAL,
+	MODE_HOST,
+	MODE_HOSTC,
+};
 
 static GtkWidget * peripheral;
 static GtkWidget * host;
 static GtkWidget * hostc;
 
-/*static int spawnvp(const char * file, char * const argv[]) {
-
-	int status;
-	pid_t pid = fork();
-
-	if ( pid < 0 )
-		return -errno;
-
-	if ( pid == 0 ) {
-
-		execvp(file, argv);
-		_exit(errno);
-
-	}
-
-	if ( waitpid(pid, &status, 0) == pid )
-		return WEXITSTATUS(status);
-	else
-		return -1;
-
-}
-
-static int spawn(char * const args[]) {
-
-	if ( spawnvp(argv[0], args) == 0 )
-		return 1;
-	else
-		return 0;
-
-}*/
-
-/*static enum usbmode usbmode_state(void) {
-
-	char buf[1024];
-	FILE * out;
-
-	out = popen("sudo /usr/sbin/usbmode.sh state", "r");
-	if ( ! out )
-		return MODE_PERIPHERAL;
-
-	memset(buf, sizeof(buf), 0);
-	fread(buf, 1, sizeof(buf), out);
-	pclose(out);
-
-	if ( ( strstr(buf, "host with boost") ) )
-		return MODE_HOST;
-	else if ( ( strstr(buf, "host with charging") ) )
-		return MODE_HOSTC;
-	else
-		return MODE_PERIPHERAL;
-
-}*/
-
-static int spwan(char * args[]) {
+static int spawn(char * args[]) {
 
 	int ret = 0;
 
@@ -108,17 +57,22 @@ static int usbmode_check(void) {
 static enum usbmode usbmode_state(void) {
 
 	char * args[] = { "sudo", "/usr/sbin/usbmode.sh", "state", NULL };
-	char buf[1024];
+	char * buf;
+	enum usbmode mode;
 
-	memset(buf, sizeof(buf), 0);
+	memset(buf, 0, sizeof(buf));
 	g_spawn_sync(NULL, args, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &buf, NULL, NULL, NULL);
 
 	if ( ( strstr(buf, "host with boost") ) )
-		return MODE_HOST;
+		mode = MODE_HOST;
 	else if ( ( strstr(buf, "host with charging") ) )
-		return MODE_HOSTC;
+		mode = MODE_HOSTC;
 	else
-		return MODE_PERIPHERAL;
+		mode = MODE_PERIPHERAL;
+
+	g_free(buf);
+
+	return mode;
 
 }
 
@@ -184,29 +138,19 @@ static void callback(GObject * object, gpointer user_data) {
 	GtkWindow * window = NULL;
 	GtkWidget * button = GTK_WIDGET(object);
 	GtkWidget * dialog;
-	GtkWidget * box
+	GtkWidget * box;
 	GtkWidget * bar;
 	enum usbmode mode;
 	int id;
 
-	switch ( button ) {
-
-		case peripheral:
-			mode = MODE_PERIPHERAL;
-			break;
-
-		case host:
-			mode = MODE_HOST;
-			break;
-
-		case hostc:
-			mode = MODE_HOSTC;
-			break;
-
-		default:
-			return;
-
-	}
+	if ( button == peripheral )
+		mode = MODE_PERIPHERAL;
+	else if ( button == host )
+		mode = MODE_HOST;
+	else if ( button == hostc )
+		mode = MODE_HOSTC;
+	else
+		return;
 
 	if ( user_data )
 		window = GTK_WINDOW(user_data);
@@ -249,14 +193,12 @@ osso_return_t execute(osso_context_t * osso G_GNUC_UNUSED, gpointer user_data, g
 	GtkWidget * dialog;
 	GtkWidget * box;
 
-	enum usbmode mode;
-
 	if ( user_data )
 		window = GTK_WINDOW(user_data);
 
 	if ( ! usbmode_check() ) {
 
-		dialog = gtk_message_dialog_new(window, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "Error: Setting USB mode is not supported!", NULL);
+		dialog = gtk_message_dialog_new(window, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "Error: Setting USB mode is not supported!");
 
 		if ( ! dialog )
 			return OSSO_ERROR;
