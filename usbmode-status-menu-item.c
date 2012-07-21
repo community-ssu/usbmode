@@ -80,6 +80,7 @@ static void usbmode_status_menu_item_init(USBModeStatusMenuItem * plugin) {
 	g_signal_connect_after(G_OBJECT(button), "clicked", G_CALLBACK(usbmode_status_menu_item_clicked), plugin);
 
 	gtk_container_add(GTK_CONTAINER(plugin), button);
+	gtk_widget_show_all(GTK_WIDGET(plugin));
 
 }
 
