@@ -113,7 +113,11 @@ charger_mode () {
 }
 
 usb_mode () {
-	echo "$1" > /sys/devices/platform/musb_hdrc/mode
+	if test -z "$1"; then
+		cat /sys/devices/platform/musb_hdrc/mode
+	else
+		echo "$1" > /sys/devices/platform/musb_hdrc/mode
+	fi
 }
 
 usb_enum () {
@@ -276,7 +280,17 @@ if ! check; then
 fi
 
 if test "$1" = "check"; then
-	exit 0
+	if charger_mode 2>/dev/null | grep -q boost; then
+		charger="boost"
+	else
+		charger="charging"
+	fi
+	if usb_mode 2>/dev/null | grep -q host; then
+		usb="host"
+	else
+		usb="peripheral"
+	fi
+	msg "Current usb mode is $usb with $charger"
 elif test "$1" = "peripheral"; then
 	msg "Setting usb mode to peripheral"
 	peripheral_mode
@@ -291,7 +305,7 @@ elif test "$1" = "hostc"; then
 	host_mode "$2" || exit 1
 	charger_mode auto
 else
-	msg "Script '$0' called without valid option. Valid are: peripheral host hostc"
+	msg "Script '$0' called without valid option. Valid are: check peripheral host hostc"
 	exit 1
 fi
 
