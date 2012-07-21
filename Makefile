@@ -7,6 +7,7 @@ install: all
 	install -d "$(DESTDIR)/usr/share/applications/hildon/"
 	install -d "$(DESTDIR)/usr/share/applications/hildon-status-menu/"
 	install -d "$(DESTDIR)/usr/share/applications/hildon-control-panel/"
+	install -d "$(DESTDIR)/usr/lib/hildon-desktop/"
 	install -d "$(DESTDIR)/usr/lib/hildon-control-panel/"
 	install -m 755 usbmode "$(DESTDIR)/usr/bin/"
 	install -m 755 usbmode.sh "$(DESTDIR)/usr/sbin/"
