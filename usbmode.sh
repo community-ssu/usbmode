@@ -299,6 +299,8 @@ if ! check; then
 fi
 
 if test "$1" = "check"; then
+	exit 0
+elif test "$1" = "state"; then
 	if charger_mode 2>/dev/null | grep -q boost; then
 		charger="boost"
 	else
@@ -324,7 +326,7 @@ elif test "$1" = "hostc"; then
 	host_mode "$2" || exit 1
 	charger_mode auto
 else
-	msg "Script '$0' called without valid option. Valid are: check peripheral host hostc"
+	msg "Script '$0' called without valid option. Valid are: check state peripheral host hostc"
 	exit 1
 fi
 
