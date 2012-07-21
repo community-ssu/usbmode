@@ -1,0 +1,54 @@
+Source: usbmode
+Section: user/desktop
+Priority: extra
+Maintainer: Pali Rohár <pali.rohar@gmail.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.3
+
+Package: usbmode
+Architecture: any
+Depends: kernel-power-flasher (>= 1:2.6.28-10power51) | kernel-feature-usbhost-new,
+ kernel-power-flasher (>= 1:2.6.28-10power51) | kernel-feature-battery,
+ kernel-power-flasher (>= 1:2.6.28-10power51) | kernel-feature-charger,
+ ke-recv (>= 3.19-14), mce, sudo,
+ ${shlibs:Depends}, ${misc:Depends}
+Description: Switch between USB peripheral and USB host mode
+ This package contains status menu plugin, control panel plugin,
+ shell script and application in menu which easy switch between
+ USB peripheral and USB host mode.
+ .
+ This program automatically detect speed of connected USB device
+ and enable USB host mode with One Click.
+ .
+ This program depends on kernel which provide new host mode support,
+ battery and charger kernel driver and last Community SSU update.
+XSBC-Maemo-Display-Name: USB mode
+XB-Maemo-Icon-26:
+ iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAGXRFWHRTb2Z0
+ d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABIBJREFUeNpi/P//P8NQBkwM
+ QxyMemDUA6MeGPXAqAcoAizoAoyMjDS10Kz9Pz+QSgBiASDecKqS8SKxerFV
+ uozogrT0ANDx+kDqANTxMADiBwA98pEcD7DQ0LH+QMoATTgBzfEg4PDvz89i
+ IF1HlSRExZBegMWxWMG/39+9gFQLEP8aLJmYaMcjAd5BEQPA0K9HTjp/f337
+ +ev9/bcgNqe4thQ2PX9/fv4JpNgG3ANAx9sDqQZksYcbM7e8ObfoMoitlXUi
+ gUfWXAFd39vzi64Aqc8DWg9Ai8cFyGKvzy44C3T8LCAThOfeWRa+4OOdPTdh
+ 8r+/vv78cHPezie7arYBud8HOgZAIQ8P3Z/vH7y5vyYR5PBjQPwFJPbrw8Pl
+ N+e6gkJaHaoMxD4MLUr/DpgHoEVmAXK6f7ilYB2QuRnmeCi4BY0NWIYFOfoD
+ OaUPUR5AK8ux1prYks6bs/OPf7i2cTGQ+RyLsV/QPIVsVjyo9ALaM5GiPABy
+ FBDvBzkamjRA+AJQrJ9Qkfnl8ckHDzflzAUyz5Iamj/e3TMGUhNAdgOxPNke
+ +Pf3VzOohsQiVQCNFTAwafqWBGoGICcdUEYFMneRkyn///7ODqudoQGWT0gP
+ RltIKXSBpKhxwjOclvz785iRiWUuzEPooc/EwrGXS1L/MTnp+c/3D74snALG
+ aMKgDJ4ATFYPiWrMaabuDeNTdl45yFrNoIxecLKCYSHBJASsFdkGmeMZvr+8
+ +u3mfE8Bokqh769v/hXEYxhy0wDFIB4xXlZuUV5C6vAWiVjMeH161tlHWwp3
+ QZMSUf0BS/2y+5vYBRVEsGl4c2HpsXsrY3ahi7PySQvr5J1PQHbAvTXJy96c
+ nXeLWA+oRK1yENINdYCG+rO7q+N3fXt6di+0UHhFbH/gLqgSUg5fFs/MxsWO
+ LAGqXZ/uaVwOZK5F1/T701Phx9srhJVC5kbBxBQCpoIc0wL0xAdiPMAppiUF
+ DHXLF4e6jj/d2wgK8S1AfBlfRYctBpiBlCW/mmemtEu9Fae4ruS/319/fbix
+ 9dbT3bUHfn18Mh3kSSxmgfQ5K4bMbwOWYsaIZPB12tl6nmxiPCDtXF//6vRs
+ qd+fnu2FJplX5HYpQRnZDIhtgVgSGgKgpLAXh+PhgQjEsboFV+qRm87AgsH5
+ bAPfPmJaJdD20V1soU5OnxjUTOAisc0iySYgl6NbeL0YKQk+ADVJiOn3kton
+ JtSc/ghtz7wiocH1/NeHR8uf7q5BzugK6P0EagFajUqA8oOPSszaZiHtIF3k
+ DjwwFg6CkhqwmfANazPmz8/mM7UcddSKAXIBKMntvbMkeBao5EJu+IF6bWoJ
+ 2wJwafz59o74YBmZAzWZ195ZHrEcVCEhJaUDAuqey4bK0OLzr49PLnlxpO8A
+ rSygx9joBWD9MQ+5L0xNwEIHD4BKr50P1qUp88hbWcIElcOX+A4VD4CL45/v
+ 7y8D4mNQPhefigvWMaJf7x88GwzFKMHKDohxxcAdIN5HbDHKODpPPOqBUQ+M
+ emDUAyPaAwABBgD3CgKIXvcZbgAAAABJRU5ErkJggg==
