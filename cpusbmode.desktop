@@ -1,9 +1,6 @@
 [Desktop Entry]
-Encoding=UTF-8
-Version=1.0
 Name=USB mode
-Comment=USB mode
 Type=HildonControlPanelPlugin
 Icon=statusarea_usb_active
-Categories=General
+Categories=Connectivity
 X-control-panel-plugin=libcpusbmode.so

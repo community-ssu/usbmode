@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=USB mode
-Exec=usbmode
-Icon=statusarea_usb_active
 Type=Application
+Icon=statusarea_usb_active
 X-App-Loading-Image=none
+Exec=usbmode
