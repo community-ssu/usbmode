@@ -53,11 +53,13 @@ mce () {
 			msg "Error: You need to install package mceledpattern from Maemo Extras repository"
 			return 1
 		fi
-		msg "Adding PatternBoost to mce"
+		msg "Stopping mce and adding PatternBoost"
+		stop -q mce
 		mceledpattern add 'PatternBoost' '35;5;0;b;9d804000043fc0000000;9d800000'
-		msg "Restarting mce"
-		stop mce
-		start mce
+	fi
+	if ! pidof mce 1>/dev/null 2>&1; then
+		msg "Starting mce"
+		start -q mce
 		if test "$?" != "0"; then
 			msg "Error: Starting mce failed, please reboot your device"
 			return 1
