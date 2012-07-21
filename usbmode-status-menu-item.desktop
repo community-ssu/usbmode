@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=USB mode
+Category=permanent
+Type=default
+X-Path=libusbmode-status-menu-item.so
