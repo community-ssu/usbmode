@@ -1,5 +1,14 @@
 #!/bin/sh
 
+dbus () {
+	run-standalone.sh dbus-send "$1" --type=method_call --dest="$2" "$3" "$4" "$5"
+}
+
+msg () {
+	echo "$1"
+	dbus --system org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications.SystemNoteInfoprint string:"$1"
+}
+
 bme () {
 	if test -f /etc/bme-disabled; then
 		return 0
@@ -13,8 +22,13 @@ bme () {
 	if ! pidof bme_RX-51 1>/dev/null 2>&1; then
 		msg "Starting bme"
 		B="$(cat /sys/class/backlight/acx565akm/brightness)"
-		start -q bme || return 1
+		start -q bme
+		ret=$?
 		echo "$B" > /sys/class/backlight/acx565akm/brightness
+		if test "$ret" != "0"; then
+			msg "Error: Starting bme failed, please reboot your device"
+			return 1
+		fi
 	fi
 	return 0
 }
@@ -33,11 +47,66 @@ kernel () {
 	return 0
 }
 
+mce () {
+	if ! grep -q '^PatternBoost=' /etc/mce/mce.ini || ! grep '^LEDPatterns=' /etc/mce/mce.ini | grep -q PatternBoost; then
+		if ! dpkg -l mceledpattern | grep -q '^ii'; then
+			msg "Error: You need to install package mceledpattern from Maemo Extras repository"
+			return 1
+		fi
+		msg "Adding PatternBoost to mce"
+		mceledpattern add 'PatternBoost' '35;5;0;b;9d804000043fc0000000;9d800000'
+		msg "Restarting mce"
+		stop mce
+		start mce
+		if test "$?" != "0"; then
+			msg "Error: Starting mce failed, please reboot your device"
+			return 1
+		fi
+	fi
+	return 0
+}
+
+check () {
+	mce || return 1
+	if ! test -f /sys/devices/platform/musb_hdrc/hostdevice; then
+		msg "Error: You need to install kernel with new usb host mode support (e.g. kernel-power >= 51)"
+		return 1
+	fi
+	if ! test -f /lib/modules/$(uname -r)/bq2415x_charger.ko; then
+		msg "Error: You need to install kernel with charger module (e.g. kernel-power >= 51)"
+		return 1
+	fi
+	if ! test -f /lib/modules/$(uname -r)/bq27x00_battery.ko; then
+		msg "Error: You need to install kernel with battery module (e.g. kernel-power >= 51)"
+		return 1
+	fi
+	if ! dpkg --compare-versions "$(dpkg-query -W -f \${Version} ke-recv)" ge "3.19-14"; then
+		msg "Error: You need to update your Maemo 5 system to last Community SSU version"
+		return 1
+	fi
+	return 0
+}
+
+
+mce_boost () {
+	if test "$1" = "1"; then
+		action=activate
+	else
+		action=deactivate
+	fi
+	dbus --system com.nokia.mce /com/nokia/mce/request com.nokia.mce.request.req_led_pattern_$action string:PatternBoost
+}
+
 charger_mode () {
 	if test -z "$1"; then
 		cat /sys/class/power_supply/bq24150-0/mode
 	else
 		echo "$1" > /sys/class/power_supply/bq24150-0/mode
+		if test "$1" = "boost"; then
+			mce_boost 1
+		else
+			mce_boost 0
+		fi
 	fi
 }
 
@@ -60,11 +129,6 @@ usb_attached () {
 	ret=$?
 	kill -9 %1 1>/dev/null 2>&1
 	return $ret
-}
-
-msg () {
-	echo "$1"
-	dbus-send --system --type=method_call --dest=org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications.SystemNoteInfoprint string:"$1"
 }
 
 host_mode () {
@@ -205,7 +269,13 @@ if test "$(id -u)" != "0"; then
 	exit 1
 fi
 
-if test "$1" = "peripheral"; then
+if ! check; then
+	exit 1
+fi
+
+if test "$1" = "check"; then
+	exit 0
+elif test "$1" = "peripheral"; then
 	msg "Setting usb mode to peripheral"
 	peripheral_mode
 	bme
