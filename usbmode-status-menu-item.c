@@ -20,11 +20,27 @@
 
 #include <dlfcn.h>
 
+#include <glib.h>
+#include <glib-object.h>
+
 #include <gtk/gtk.h>
 #include <hildon/hildon.h>
-#include <gconf/gconf-client.h>
+#include <libhildondesktop/libhildondesktop.h>
 
-#include "usbmode-status-menu-item.h"
+G_BEGIN_DECLS
+
+typedef struct _USBModeStatusMenuItem		USBModeStatusMenuItem;
+typedef struct _USBModeStatusMenuItemClass	USBModeStatusMenuItemClass;
+
+struct _USBModeStatusMenuItem {
+	HDStatusMenuItem parent_instance;
+};
+
+struct _USBModeStatusMenuItemClass {
+	HDStatusMenuItemClass parent_class;
+};
+
+G_END_DECLS
 
 HD_DEFINE_PLUGIN_MODULE(USBModeStatusMenuItem, usbmode_status_menu_item, HD_TYPE_STATUS_MENU_ITEM);
 
