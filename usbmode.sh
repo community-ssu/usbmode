@@ -256,17 +256,17 @@ host_mode () {
 peripheral_mode () {
 
 	if lsmod | grep -q g_file_storage; then
-		rmmod g_file_storage
+		rmmod g_file_storage 2>/dev/null
 		sleep 1
 	fi
 
 	if charger_mode 2>/dev/null | grep -q boost; then
-		charger_mode none
+		charger_mode none 2>/dev/null
 	fi
 
-	usb_mode peripheral
+	usb_mode peripheral 2>/dev/null
 	charger_mode auto 2>/dev/null
-	modprobe g_file_storage stall=0 luns=2 removable
+	modprobe g_file_storage stall=0 luns=2 removable 2>/dev/null
 
 }
 
