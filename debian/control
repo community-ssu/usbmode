@@ -10,7 +10,7 @@ Architecture: any
 Depends: kernel-power-flasher (>= 1:2.6.28-10power51) | kernel-feature-usbhost-new,
  kernel-power-flasher (>= 1:2.6.28-10power51) | kernel-feature-battery,
  kernel-power-flasher (>= 1:2.6.28-10power51) | kernel-feature-charger,
- ke-recv (>= 3.19-14), mce, sudo,
+ ke-recv (>= 3.19-14), mce, mceledpattern, sudo,
  ${shlibs:Depends}, ${misc:Depends}
 Description: Switch between USB peripheral and USB host mode
  This package contains status menu plugin, control panel plugin,
