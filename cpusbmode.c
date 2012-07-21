@@ -33,12 +33,13 @@ enum usbmode {
 static GtkWidget * peripheral;
 static GtkWidget * host;
 static GtkWidget * hostc;
+int lock;
 
 static int spawn(char * args[]) {
 
 	int ret = 0;
 
-	g_spawn_sync(NULL, args, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, &ret, NULL);
+	g_spawn_sync(NULL, args, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, &ret, NULL);
 
 	if ( ret == 0 )
 		return 1;
@@ -57,20 +58,22 @@ static int usbmode_check(void) {
 static enum usbmode usbmode_state(void) {
 
 	char * args[] = { "sudo", "/usr/sbin/usbmode.sh", "state", NULL };
-	char * buf;
+	char * buf = NULL;
 	enum usbmode mode;
 
-	memset(buf, 0, sizeof(buf));
-	g_spawn_sync(NULL, args, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &buf, NULL, NULL, NULL);
+	g_spawn_sync(NULL, args, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &buf, NULL, NULL, NULL);
 
-	if ( ( strstr(buf, "host with boost") ) )
+	if ( ! buf )
+		mode = MODE_PERIPHERAL;
+	else if ( ( strstr(buf, "host with boost") ) )
 		mode = MODE_HOST;
 	else if ( ( strstr(buf, "host with charging") ) )
 		mode = MODE_HOSTC;
 	else
 		mode = MODE_PERIPHERAL;
 
-	g_free(buf);
+	if ( buf )
+		g_free(buf);
 
 	return mode;
 
@@ -103,6 +106,9 @@ static int usbmode_set(enum usbmode mode) {
 static void update(void) {
 
 	enum usbmode mode = usbmode_state();
+	int old_lock = lock;
+
+	lock = 1;
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(peripheral), FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(host), FALSE);
@@ -124,6 +130,8 @@ static void update(void) {
 
 	}
 
+	lock = old_lock;
+
 }
 
 static gboolean bar_pulse(gpointer user_data) {
@@ -142,6 +150,11 @@ static void callback(GObject * object, gpointer user_data) {
 	GtkWidget * bar;
 	enum usbmode mode;
 	int id;
+
+	if ( lock )
+		return;
+
+	lock = 1;
 
 	if ( button == peripheral )
 		mode = MODE_PERIPHERAL;
@@ -199,6 +212,8 @@ static void callback(GObject * object, gpointer user_data) {
 	gtk_widget_destroy(dialog);
 
 	update();
+
+	lock = 0;
 
 }
 
