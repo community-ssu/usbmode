@@ -2,7 +2,8 @@ Source: usbmode
 Section: user/desktop
 Priority: extra
 Maintainer: Pali Rohár <pali.rohar@gmail.com>
-Build-Depends: debhelper (>= 5)
+Build-Depends: debhelper (>= 5), pkg-config, libosso-dev,
+ libhildon1-dev, libhildondesktop1-dev, hildon-control-panel-dev
 Standards-Version: 3.7.3
 
 Package: usbmode
