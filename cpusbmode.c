@@ -290,9 +290,34 @@ osso_return_t execute(osso_context_t * osso G_GNUC_UNUSED, gpointer user_data, g
 		return OSSO_ERROR;
 	}
 
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), box, TRUE, TRUE, 0);
+
 	peripheral = hildon_gtk_toggle_button_new(HILDON_SIZE_FINGER_HEIGHT);
+
+	if ( ! peripheral ) {
+		gtk_widget_destroy(dialog);
+		return OSSO_ERROR;
+	}
+
+	gtk_container_add(GTK_CONTAINER(box), peripheral);
+
 	host = hildon_gtk_toggle_button_new(HILDON_SIZE_FINGER_HEIGHT);
+
+	if ( ! host ) {
+		gtk_widget_destroy(dialog);
+		return OSSO_ERROR;
+	}
+
+	gtk_container_add(GTK_CONTAINER(box), host);
+
 	hostc = hildon_gtk_toggle_button_new(HILDON_SIZE_FINGER_HEIGHT);
+
+	if ( ! hostc ) {
+		gtk_widget_destroy(dialog);
+		return OSSO_ERROR;
+	}
+
+	gtk_container_add(GTK_CONTAINER(box), hostc);
 
 	gtk_button_set_label(GTK_BUTTON(peripheral), "USB peripheral mode");
 	gtk_button_set_label(GTK_BUTTON(host), "USB host mode (with boost)");
@@ -303,12 +328,6 @@ osso_return_t execute(osso_context_t * osso G_GNUC_UNUSED, gpointer user_data, g
 	g_signal_connect(hostc, "toggled", G_CALLBACK(callback), dialog);
 
 	update();
-
-	gtk_container_add(GTK_CONTAINER(box), peripheral);
-	gtk_container_add(GTK_CONTAINER(box), host);
-	gtk_container_add(GTK_CONTAINER(box), hostc);
-
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), box, TRUE, TRUE, 0);
 
 	gtk_widget_show_all(dialog);
 	gtk_dialog_run(GTK_DIALOG(dialog));
