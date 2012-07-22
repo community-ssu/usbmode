@@ -281,6 +281,8 @@ osso_return_t execute(osso_context_t * osso G_GNUC_UNUSED, gpointer user_data, g
 	if ( ! dialog )
 		return OSSO_ERROR;
 
+	hildon_gtk_window_set_portrait_flags(GTK_WINDOW(window), HILDON_PORTRAIT_MODE_SUPPORT);
+
 	box = gtk_vbox_new(TRUE, 0);
 
 	if ( ! box ) {
