@@ -33,7 +33,7 @@ enum usbmode {
 static GtkWidget * peripheral;
 static GtkWidget * host;
 static GtkWidget * hostc;
-int lock;
+static int id = -1;
 
 static int spawn(char * args[]) {
 
@@ -79,8 +79,9 @@ static enum usbmode usbmode_state(void) {
 
 }
 
-static int usbmode_set(enum usbmode mode) {
+static GPid usbmode_set_start(enum usbmode mode) {
 
+	GPid pid = -1;
 	char * args[] = { "sudo", "/usr/sbin/usbmode.sh", NULL, NULL };
 
 	switch ( mode ) {
@@ -99,16 +100,20 @@ static int usbmode_set(enum usbmode mode) {
 
 	}
 
-	return spawn(args);
+	if ( ! g_spawn_async(NULL, args, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &pid, NULL) )
+		return -1;
+
+	return pid;
 
 }
 
 static void update(void) {
 
 	enum usbmode mode = usbmode_state();
-	int old_lock = lock;
+	int old_id = id;
 
-	lock = 1;
+	if ( old_id < 0 )
+		id = 1;
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(peripheral), FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(host), FALSE);
@@ -130,7 +135,8 @@ static void update(void) {
 
 	}
 
-	lock = old_lock;
+	if ( old_id < 0 )
+		id = old_id;
 
 }
 
@@ -141,6 +147,28 @@ static gboolean bar_pulse(gpointer user_data) {
 
 }
 
+static void callback_finish(GPid pid, int status G_GNUC_UNUSED, gpointer user_data) {
+
+	GtkWidget * dialog = NULL;
+
+	if ( user_data )
+		dialog = GTK_WIDGET(user_data);
+
+	if ( pid > 0 )
+		g_spawn_close_pid(pid);
+
+	if ( id >= 0 )
+		g_source_remove(id);
+
+	if ( dialog )
+		gtk_widget_destroy(dialog);
+
+	update();
+
+	id = -1;
+
+}
+
 static void callback(GObject * object, gpointer user_data) {
 
 	GtkWindow * window = NULL;
@@ -148,13 +176,12 @@ static void callback(GObject * object, gpointer user_data) {
 	GtkWidget * dialog;
 	GtkWidget * box;
 	GtkWidget * bar;
+	char * text;
 	enum usbmode mode;
-	int id;
+	GPid pid;
 
-	if ( lock )
+	if ( id >= 0 )
 		return;
-
-	lock = 1;
 
 	if ( button == peripheral )
 		mode = MODE_PERIPHERAL;
@@ -173,10 +200,8 @@ static void callback(GObject * object, gpointer user_data) {
 	if ( ! dialog )
 		return;
 
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-	gtk_dialog_set_has_separator(GTK_DIALOG(dialog), FALSE);
-	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
+	gtk_window_set_title(GTK_WINDOW(dialog), "USB mode");
+	gtk_window_set_modal(GTK_WINDOW(dialog), FALSE);
 
 	box = gtk_vbox_new(FALSE, HILDON_MARGIN_DOUBLE);
 
@@ -194,11 +219,25 @@ static void callback(GObject * object, gpointer user_data) {
 		return;
 	}
 
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(bar), "Setting USB mode");
-	gtk_progress_bar_set_ellipsize(GTK_PROGRESS_BAR(bar), PANGO_ELLIPSIZE_END);
 	g_object_set(G_OBJECT(bar), "text-xalign", 0.5, NULL);
 	gtk_box_pack_start(GTK_BOX(box), bar, FALSE, FALSE, 0);
-	id = gtk_timeout_add(500, bar_pulse, &bar);
+
+	text = g_strdup_printf("Setting USB mode to: %s", gtk_button_get_label(GTK_BUTTON(button)));
+
+	if ( ! text ) {
+		gtk_widget_destroy(dialog);
+		return;
+	}
+
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(bar), text);
+	g_free(text);
+
+	id = g_timeout_add(500, bar_pulse, bar);
+
+	if ( id < 0 ) {
+		gtk_widget_destroy(dialog);
+		return;
+	}
 
 	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
 	gtk_widget_hide(GTK_DIALOG(dialog)->action_area);
@@ -206,14 +245,12 @@ static void callback(GObject * object, gpointer user_data) {
 	gtk_window_set_transient_for(GTK_WINDOW(dialog), window);
 	gtk_widget_show_all(dialog);
 
-	usbmode_set(mode);
+	pid = usbmode_set_start(mode);
 
-	g_source_remove(id);
-	gtk_widget_destroy(dialog);
-
-	update();
-
-	lock = 0;
+	if ( pid > 0 )
+		g_child_watch_add(pid, callback_finish, dialog);
+	else
+		callback_finish(0, 0, dialog);
 
 }
 
