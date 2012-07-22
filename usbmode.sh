@@ -33,9 +33,11 @@ bme () {
 	fi
 	if lsmod | grep -q bq2415x_charger; then
 		rmmod bq2415x_charger || return 1
+		sleep 1
 	fi
 	if lsmod | grep -q bq27x00_battery; then
 		rmmod bq27x00_battery || return 1
+		sleep 1
 	fi
 	if ! pidof bme_RX-51 1>/dev/null 2>&1; then
 		msg "Starting bme"
@@ -58,9 +60,11 @@ kernel () {
 	fi
 	if ! lsmod | grep -q bq2415x_charger; then
 		modprobe bq2415x_charger || return 1
+		sleep 1
 	fi
 	if ! lsmod | grep -q bq27x00_battery; then
 		modprobe bq27x00_battery || return 1
+		sleep 1
 	fi
 	return 0
 }
@@ -286,6 +290,7 @@ peripheral_mode () {
 	usb_mode peripheral 2>/dev/null
 	charger_mode auto 2>/dev/null
 	modprobe g_file_storage stall=0 luns=2 removable 2>/dev/null
+	sleep 1
 
 }
 
