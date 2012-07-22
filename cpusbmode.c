@@ -35,9 +35,10 @@ static GtkWidget * host;
 static GtkWidget * hostc;
 static int id = -1;
 
-static int spawn(char * args[]) {
+static int usbmode_check(void) {
 
-	int ret = 0;
+	int ret = 1;
+	char * args[] = { "sudo", "/usr/sbin/usbmode.sh", "check", NULL };
 
 	g_spawn_sync(NULL, args, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, &ret, NULL);
 
@@ -48,32 +49,26 @@ static int spawn(char * args[]) {
 
 }
 
-static int usbmode_check(void) {
-
-	char * args[] = { "sudo", "/usr/sbin/usbmode.sh", "check", NULL };
-	return spawn(args);
-
-}
-
 static enum usbmode usbmode_state(void) {
 
 	char * args[] = { "sudo", "/usr/sbin/usbmode.sh", "state", NULL };
 	char * buf = NULL;
 	enum usbmode mode;
 
-	g_spawn_sync(NULL, args, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &buf, NULL, NULL, NULL);
+	if ( ! g_spawn_sync(NULL, args, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &buf, NULL, NULL, NULL) )
+		return MODE_PERIPHERAL;
 
 	if ( ! buf )
-		mode = MODE_PERIPHERAL;
-	else if ( ( strstr(buf, "host with boost") ) )
+		return MODE_PERIPHERAL;
+
+	if ( ( strstr(buf, "host with boost") ) )
 		mode = MODE_HOST;
 	else if ( ( strstr(buf, "host with charging") ) )
 		mode = MODE_HOSTC;
 	else
 		mode = MODE_PERIPHERAL;
 
-	if ( buf )
-		g_free(buf);
+	g_free(buf);
 
 	return mode;
 
