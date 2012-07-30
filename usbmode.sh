@@ -130,10 +130,15 @@ mce_boost () {
 }
 
 charger_mode () {
-	if test -z "$1"; then
-		cat /sys/class/power_supply/bq24150-0/mode
+	if test -d /sys/class/power_supply/bq24150a-0; then
+		file=/sys/class/power_supply/bq24150a-0/mode
 	else
-		echo "$1" > /sys/class/power_supply/bq24150-0/mode
+		file=/sys/class/power_supply/bq24150-0/mode
+	fi
+	if test -z "$1"; then
+		cat "$file"
+	else
+		echo "$1" > "$file"
 		if test "$1" = "boost"; then
 			mce_boost 1
 		else
