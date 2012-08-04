@@ -70,6 +70,14 @@ kernel () {
 }
 
 gadget_unload () {
+	if ! osso-usb-mass-storage-is-used.sh; then
+		osso-usb-mass-storage-disable.sh
+	fi
+	if lsmod | grep -q g_nokia; then
+		initctl emit G_NOKIA_REMOVE
+		killall pnatd obexd syncd 1>/dev/null 2>&1
+		pcsuite-disable.sh
+	fi
 	modules="$(lsmod | grep '^g_' | sed 's/ .*//')"
 	for module in $modules; do
 		rmmod $module
