@@ -1,3 +1,10 @@
+usbmode (1.0-2) fremantle; urgency=low
+
+  * If usb mass storage or pc suite mode is enabled, first kill maemo daemons
+  * bq2415x_charger can export values to directory /sys/class/power_supply/bq24150a-0
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Thu, 13 Sep 2012 18:49:39 +0200
+
 usbmode (1.0-1) fremantle; urgency=low
 
   * Initial Release.
