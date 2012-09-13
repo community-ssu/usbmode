@@ -31,6 +31,12 @@ bme () {
 	if test -f /etc/bme-disabled; then
 		return 0
 	fi
+	if ! dpkg -l bme-rx-51 | grep -q '^ii'; then
+		return 0
+	fi
+	if dpkg --compare-versions "$(dpkg-query -W -f \${Version} bme-rx-51)" ge "1.0"; then
+		return 0
+	fi
 	if lsmod | grep -q bq2415x_charger; then
 		rmmod bq2415x_charger || return 1
 		sleep 1
