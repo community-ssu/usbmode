@@ -135,6 +135,9 @@ check () {
 
 
 mce_boost () {
+	if dpkg --compare-versions "$(dpkg-query -W -f \${Version} hald-addon-bme)" ge "1.0"; then
+		return 0
+	fi
 	if test "$1" = "1"; then
 		action=activate
 	else
