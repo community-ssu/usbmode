@@ -316,6 +316,24 @@ peripheral_mode () {
 
 }
 
+update_state () {
+
+	if charger_mode 2>/dev/null | grep -q boost; then
+		charger="boost"
+	else
+		charger="charging"
+	fi
+
+	if usb_mode 2>/dev/null | grep -q host; then
+		usb="host"
+	else
+		usb="peripheral"
+	fi
+
+	echo "$usb with $charger" > /tmp/usbmode_state
+
+}
+
 if test "$(id -u)" != "0"; then
 	msg "Error: You must be root"
 	exit 1
@@ -328,30 +346,24 @@ fi
 if test "$1" = "check"; then
 	exit 0
 elif test "$1" = "state"; then
-	if charger_mode 2>/dev/null | grep -q boost; then
-		charger="boost"
-	else
-		charger="charging"
-	fi
-	if usb_mode 2>/dev/null | grep -q host; then
-		usb="host"
-	else
-		usb="peripheral"
-	fi
-	msg "Current usb mode is $usb with $charger"
+	update_state
+	msg "Current usb mode is $(cat /tmp/usbmode_state)"
 elif test "$1" = "peripheral"; then
 	msg "Setting usb mode to peripheral"
 	peripheral_mode
 	bme
+	update_state
 elif test "$1" = "host"; then
 	msg "Setting usb mode to host with boost"
 	kernel || exit 1
 	host_mode "$2" || exit 1
+	update_state
 elif test "$1" = "hostc"; then
 	msg "Setting usb mode to host with charging"
 	kernel || exit 1
 	host_mode "$2" || exit 1
 	charger_mode auto
+	update_state
 else
 	msg "Script '$0' called without valid option. Valid are: check state peripheral host hostc"
 	exit 1
