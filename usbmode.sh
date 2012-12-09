@@ -75,7 +75,18 @@ kernel () {
 	return 0
 }
 
+udev_pause () {
+	logger -t usbmode.sh "Pausing udev"
+	udevadm control --stop_exec_queue || udevadm control --stop-exec-queue
+}
+
+udev_resume () {
+	logger -t usbmode.sh "Resuming udev"
+	udevadm control --start_exec_queue || udevadm control --start-exec-queue
+}
+
 gadget_unload () {
+	logger -t usbmode.sh "Unloading gadgets"
 	if ! osso-usb-mass-storage-is-used.sh; then
 		osso-usb-mass-storage-disable.sh
 	fi
@@ -155,6 +166,7 @@ charger_mode () {
 	if test -z "$1"; then
 		cat "$file"
 	else
+		logger -t usbmode.sh "Changing charger mode to $1"
 		echo "$1" > "$file"
 		if test "$1" = "boost"; then
 			mce_boost 1
@@ -168,25 +180,65 @@ usb_mode () {
 	if test -z "$1"; then
 		cat /sys/devices/platform/musb_hdrc/mode
 	else
+		logger -t usbmode.sh "Changing usb mode to $1"
 		echo "$1" > /sys/devices/platform/musb_hdrc/mode
 	fi
 }
 
 usb_enum () {
+	logger -t usbmode.sh "Enumerating usb"
 	echo F > /proc/driver/musb_hdrc
 }
 
-usb_device () {
-	cat /sys/devices/platform/musb_hdrc/hostdevice
+usb_attached () {
+	logger -t usbmode.sh "Checking for attached usb devices"
+	ls /sys/bus/usb/devices/ 2>/dev/null | grep -v '^usb1$' | grep -q -v '^1-0:1.0$'
+	return $ret
 }
 
-usb_attached () {
-	lsusb | grep -v '1d6b:0002' > /var/tmp/lsusb &
-	sleep 3
-	test -s /var/tmp/lsusb
-	ret=$?
-	kill -9 %1 1>/dev/null 2>&1
-	return $ret
+usb_device () {
+
+	hostdevice="$(cat /sys/devices/platform/musb_hdrc/hostdevice 2>/dev/null)"
+	hostdevice2="$(cat /sys/devices/platform/musb_hdrc/hostdevice2 2>/dev/null)"
+
+	logger -t usbmode.sh "Detected usb host device speed: 1=$hostdevice 2=$hostdevice2"
+
+	# Old kernel does not have hostdevice2 and it report value to hostdevice
+	# Create fake hostdevice2
+	if test "$hostdevice" = "full/low"; then
+		hostdevice="none"
+		hostdevice2="full/low"
+	elif test "$hostdevice" = "high"; then
+		hostdevice="full/high"
+		hostdevice2="high"
+	elif test -z "$hostdevice2"; then
+		if test "$hostdevice" = "none"; then
+			hostdevice2="none"
+		else
+			hostdevice2="high"
+		fi
+	fi
+
+	case "$hostdevice" in
+		low)
+			echo "low"
+			;;
+		full/high)
+			case "$hostdevice2" in
+				none) echo "none";;
+				full/low) echo "full";;
+				high) echo "high";;
+			esac
+			;;
+		none)
+			# More high speed devices are not detected in low mode for hostdevice
+			case "$hostdevice2" in
+				none) echo "none";;
+				full/low|high) echo "high";;
+			esac
+			;;
+	esac
+
 }
 
 host_mode () {
@@ -202,26 +254,46 @@ host_mode () {
 		return 1
 	fi
 
+	echo -1 > /sys/module/usbcore/parameters/autosuspend
+
 	gadget_unload
 	charger_mode none
 	modprobe g_file_storage stall=0 luns=2 removable
+	sleep 1
+	udev_pause
 
-	if test -z "$1"; then
-		try=low
-		iter="1 2 3 4 5"
-	else
-		try="$1"
+	iter="1 2 3"
+	tried_low=0
+	tried_full=0
+	tried_high=0
+	detect=
+
+	if ! test -z "$1"; then
+		tried_low=1
+		tried_full=1
+		tried_high=1
+		eval tried_$1=0
 		iter="1"
 	fi
 
-	good=
-
 	for i in $iter; do
+
+		if ! test -z "$detect" && eval test "\$tried_$detect" = "0"; then
+			try="$detect"
+		elif test "$tried_low" = "0"; then
+			try="low"
+		elif test "$tried_full" = "0"; then
+			try="full"
+		elif test "$tried_high" = "0"; then
+			try="high"
+		else
+			break
+		fi
 
 		msg "Setting usb speed: $try"
 
 		charger_mode none
-		sleep 4
+		sleep 1
 
 		case "$try" in
 			low) usb_mode hostl;;
@@ -230,73 +302,30 @@ host_mode () {
 		esac
 
 		charger_mode boost
-		sleep 1
+		sleep 4
 
 		usb_enum
-		sleep 2
+		sleep 3
 
 		if usb_attached; then
 			msg "Done. Device visible in system"
+			udev_resume
 			return 0
 		fi
 
-		speed="$(usb_device)"
-		msg "Attached device speed: $speed"
+		detect="$(usb_device)"
+		msg "Detected device speed: $detect"
 
-		case "$speed" in
-
-			none)
-				next="$good"
-			;;
-
-			low)
-				next=low
-			;;
-
-			full/low)
-				if test "$try" = "low"; then
-					next=full
-				else
-					next=low
-				fi
-			;;
-
-			full)
-				next=full
-			;;
-
-			full/high)
-				if test "$try" = "full"; then
-					next=high
-				else
-					next=full
-				fi
-			;;
-
-			high)
-				next=high
-			;;
-
-		esac
-
-		if echo "$speed" | grep "$try"; then
-			good="$try"
+		if test "$detect" = "none"; then
+			detect=
 		fi
 
-		if test "$try" = "$next" && test "$speed" != "none"; then
-			msg "Error: Correct speed but device not visible in system"
-		fi
-
-		if test -z "$next"; then
-			msg "Error: No device attached"
-			return 1
-		fi
-
-		try="$next"
+		eval tried_$try=1
 
 	done
 
 	msg "Error: Timeout, configuration failed"
+	udev_resume
 	return 1
 
 }
@@ -308,6 +337,8 @@ peripheral_mode () {
 	if charger_mode 2>/dev/null | grep -q boost; then
 		charger_mode none 2>/dev/null
 	fi
+
+	echo 2 > /sys/module/usbcore/parameters/autosuspend
 
 	usb_mode peripheral 2>/dev/null
 	charger_mode auto 2>/dev/null
