@@ -8,8 +8,8 @@ Standards-Version: 3.7.3
 
 Package: usbmode
 Architecture: any
-Depends: kernel-feature-usbhost-new, kernel-feature-battery, kernel-feature-charger,
- ke-recv (>= 3.19-14), mce, mceledpattern, sudo,
+Depends: kernel-feature-usbhost-new, kernel-feature-battery,
+ kernel-feature-charger, mce, mceledpattern, sudo,
  ${shlibs:Depends}, ${misc:Depends}
 Description: Switch between USB peripheral and USB host mode
  This package contains status menu plugin, control panel plugin,

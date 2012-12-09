@@ -137,10 +137,6 @@ check () {
 		msg "Error: You need to install kernel with battery module (e.g. kernel-power >= 51)"
 		return 1
 	fi
-	if ! dpkg --compare-versions "$(dpkg-query -W -f \${Version} ke-recv)" ge "3.19-14"; then
-		msg "Error: You need to update your Maemo 5 system to last Community SSU version"
-		return 1
-	fi
 	return 0
 }
 
