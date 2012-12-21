@@ -246,7 +246,7 @@ host_mode () {
 
 	mode=$(charger_mode)
 	if ! echo "$mode" | grep -q none && ! echo "$mode" | grep -q boost; then
-		msg "Error: Charger attached"
+		msg "Error: Charger attached, first disconnect charger"
 		return 1
 	fi
 
@@ -389,7 +389,7 @@ elif test "$1" = "hostc"; then
 	msg "Setting usb mode to host with charging"
 	kernel || exit 1
 	host_mode "$2" || exit 1
-	charger_mode auto
+	charger_mode host
 	update_state
 else
 	msg "Script '$0' called without valid option. Valid are: check state peripheral host hostc"
