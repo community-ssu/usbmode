@@ -1,3 +1,20 @@
+usbmode (1.0-3) fremantle; urgency=low
+
+  * Do not start bme if is not installed or new replacement version is installed
+  * Do not use mce boost pattern if new replacement version of hald-addon-bme is installed
+  * Depends on kernel-feature-* packages instead on kernel-power
+  * Show current usb mode in status menu plugin
+  * Pause udev when configuring usb host mode
+  * Disable autosuspend of usb devices in usb host mode
+  * Do not use lsusb (instead look to /sys/bus/usb/devices/)
+  * Fixed usbmode.sh for better detection of usb host devices
+  * Removed dependency on CSSU version of ke-recv
+  * Fix setting portrait flag
+  * In host mode with charging change charger mode to host, because charger autodetection must be disabled
+  * Fixed switching from host mode with charging to host mode with boost
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Fri, 21 Dec 2012 14:03:22 +0100
+
 usbmode (1.0-2) fremantle; urgency=low
 
   * If usb mass storage or pc suite mode is enabled, first kill maemo daemons
