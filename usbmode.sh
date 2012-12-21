@@ -384,6 +384,7 @@ elif test "$1" = "host"; then
 	msg "Setting usb mode to host with boost"
 	kernel || exit 1
 	host_mode "$2" || exit 1
+	charger_mode boost
 	update_state
 elif test "$1" = "hostc"; then
 	msg "Setting usb mode to host with charging"
