@@ -245,7 +245,7 @@ host_mode () {
 	fi
 
 	mode=$(charger_mode)
-	if ! echo "$mode" | grep -q none && ! echo "$mode" | grep -q boost; then
+	if ! echo "$mode" | grep -q off && ! echo "$mode" | grep -q boost; then
 		msg "Error: Charger attached, first disconnect charger"
 		return 1
 	fi
@@ -253,7 +253,7 @@ host_mode () {
 	echo -1 > /sys/module/usbcore/parameters/autosuspend
 
 	gadget_unload
-	charger_mode none
+	charger_mode off
 	modprobe g_file_storage stall=0 luns=2 removable
 	sleep 1
 	udev_pause
@@ -288,7 +288,7 @@ host_mode () {
 
 		msg "Setting usb speed: $try"
 
-		charger_mode none
+		charger_mode off
 		sleep 1
 
 		case "$try" in
@@ -331,7 +331,7 @@ peripheral_mode () {
 	gadget_unload 2>/dev/null
 
 	if charger_mode 2>/dev/null | grep -q boost; then
-		charger_mode none 2>/dev/null
+		charger_mode off 2>/dev/null
 	fi
 
 	echo 2 > /sys/module/usbcore/parameters/autosuspend
