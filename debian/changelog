@@ -1,3 +1,10 @@
+usbmode (1.0-4) fremantle; urgency=low
+
+  * Fix charger_mode for kernel-power v52
+  * Build only for armel
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Sun, 07 Apr 2013 16:21:10 +0200
+
 usbmode (1.0-3) fremantle; urgency=low
 
   * Do not start bme if is not installed or new replacement version is installed
